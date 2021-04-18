@@ -1,26 +1,27 @@
-var util = require('./util');
-var EncodingTable = require('./encoding-table');
+var util = require("./util");
+var EncodingTable = require("./encoding-table");
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 
 // Alternate character when can't detect
 exports.UNKNOWN_CHARACTER = 63; // '?'
 
-var HAS_TYPED = exports.HAS_TYPED = typeof Uint8Array !== 'undefined' && typeof Uint16Array !== 'undefined';
+var HAS_TYPED = (exports.HAS_TYPED =
+  typeof Uint8Array !== "undefined" && typeof Uint16Array !== "undefined");
 
 // Test for String.fromCharCode.apply
 var CAN_CHARCODE_APPLY = false;
 var CAN_CHARCODE_APPLY_TYPED = false;
 
 try {
-  if (String.fromCharCode.apply(null, [0x61]) === 'a') {
+  if (String.fromCharCode.apply(null, [0x61]) === "a") {
     CAN_CHARCODE_APPLY = true;
   }
 } catch (e) {}
 
 if (HAS_TYPED) {
   try {
-    if (String.fromCharCode.apply(null, new Uint8Array([0x61])) === 'a') {
+    if (String.fromCharCode.apply(null, new Uint8Array([0x61])) === "a") {
       CAN_CHARCODE_APPLY_TYPED = true;
     }
   } catch (e) {}
@@ -33,51 +34,53 @@ exports.CAN_CHARCODE_APPLY_TYPED = CAN_CHARCODE_APPLY_TYPED;
 exports.APPLY_BUFFER_SIZE = 65533;
 exports.APPLY_BUFFER_SIZE_OK = null;
 
-
-var EncodingNames = exports.EncodingNames = {
+var EncodingNames = (exports.EncodingNames = {
   UTF32: {
-    order: 0
+    order: 0,
   },
   UTF32BE: {
-    alias: ['UCS4']
+    alias: ["UCS4"],
   },
   UTF32LE: null,
   UTF16: {
-    order: 1
+    order: 1,
   },
   UTF16BE: {
-    alias: ['UCS2']
+    alias: ["UCS2"],
   },
   UTF16LE: null,
   BINARY: {
-    order: 2
+    order: 2,
   },
   ASCII: {
     order: 3,
-    alias: ['ISO646', 'CP367']
+    alias: ["ISO646", "CP367"],
   },
   JIS: {
     order: 4,
-    alias: ['ISO2022JP']
+    alias: ["ISO2022JP"],
   },
   UTF8: {
-    order: 5
+    order: 5,
   },
   EUCJP: {
-    order: 6
+    order: 6,
   },
   SJIS: {
     order: 7,
-    alias: ['CP932', 'MSKANJI', 'WINDOWS31J']
+    alias: ["CP932", "MSKANJI", "WINDOWS31J"],
   },
   UNICODE: {
-    order: 8
-  }
-};
+    order: 8,
+  },
+});
 
 var EncodingAliases = {};
-
-exports.EncodingOrders = (function() {
+/**
+ * The order of encoding.
+ * Estimating the encoding method in this order and return the matches.
+ */
+exports.EncodingOrders = (function () {
   var aliases = EncodingAliases;
 
   var names = util.getKeys(EncodingNames);
@@ -90,7 +93,7 @@ exports.EncodingOrders = (function() {
 
     encoding = EncodingNames[name];
     if (encoding != null) {
-      if (typeof encoding.order !== 'undefined') {
+      if (typeof encoding.order !== "undefined") {
         orders[orders.length] = name;
       }
 
@@ -103,13 +106,12 @@ exports.EncodingOrders = (function() {
     }
   }
 
-  orders.sort(function(a, b) {
+  orders.sort(function (a, b) {
     return EncodingNames[a].order - EncodingNames[b].order;
   });
 
   return orders;
-}());
-
+})();
 
 function init_JIS_TO_UTF8_TABLE() {
   if (EncodingTable.JIS_TO_UTF8_TABLE === null) {
@@ -123,7 +125,7 @@ function init_JIS_TO_UTF8_TABLE() {
     for (; i < len; i++) {
       key = keys[i];
       value = EncodingTable.UTF8_TO_JIS_TABLE[key];
-      if (value > 0x5F) {
+      if (value > 0x5f) {
         EncodingTable.JIS_TO_UTF8_TABLE[value] = key | 0;
       }
     }
@@ -145,8 +147,8 @@ exports.init_JIS_TO_UTF8_TABLE = init_JIS_TO_UTF8_TABLE;
  * Assign the internal encoding name from the argument encoding name
  */
 function assignEncodingName(target) {
-  var name = '';
-  var expect = ('' + target).toUpperCase().replace(/[^A-Z0-9]+/g, '');
+  var name = "";
+  var expect = ("" + target).toUpperCase().replace(/[^A-Z0-9]+/g, "");
   var aliasNames = util.getKeys(EncodingAliases);
   var len = aliasNames.length;
   var hit = 0;
@@ -161,8 +163,10 @@ function assignEncodingName(target) {
 
     encodingLen = encoding.length;
     for (j = hit; j < encodingLen; j++) {
-      if (encoding.slice(0, j) === expect.slice(0, j) ||
-          encoding.slice(-j) === expect.slice(-j)) {
+      if (
+        encoding.slice(0, j) === expect.slice(0, j) ||
+        encoding.slice(-j) === expect.slice(-j)
+      ) {
         name = encoding;
         hit = j;
       }

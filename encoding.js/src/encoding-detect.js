@@ -11,11 +11,11 @@ function isBINARY(data) {
 
   for (; i < len; i++) {
     c = data[i];
-    if (c > 0xFF) {
+    if (c > 0xff) {
       return false;
     }
 
-    if ((c >= 0x00 && c <= 0x07) || c === 0xFF) {
+    if ((c >= 0x00 && c <= 0x07) || c === 0xff) {
       return true;
     }
   }
@@ -34,9 +34,7 @@ function isASCII(data) {
 
   for (; i < len; i++) {
     b = data[i];
-    if (b > 0xFF ||
-        (b >= 0x80 && b <= 0xFF) ||
-        b === 0x1B) {
+    if (b > 0xff || (b >= 0x80 && b <= 0xff) || b === 0x1b) {
       return false;
     }
   }
@@ -59,11 +57,11 @@ function isJIS(data) {
 
   for (; i < len; i++) {
     b = data[i];
-    if (b > 0xFF || (b >= 0x80 && b <= 0xFF)) {
+    if (b > 0xff || (b >= 0x80 && b <= 0xff)) {
       return false;
     }
 
-    if (b === 0x1B) {
+    if (b === 0x1b) {
       if (i + 2 >= len) {
         return false;
       }
@@ -71,18 +69,26 @@ function isJIS(data) {
       esc1 = data[i + 1];
       esc2 = data[i + 2];
       if (esc1 === 0x24) {
-        if (esc2 === 0x28 ||  // JIS X 0208-1990/2000/2004
-            esc2 === 0x40 ||  // JIS X 0208-1978
-            esc2 === 0x42) {  // JIS X 0208-1983
+        if (
+          esc2 === 0x28 || // JIS X 0208-1990/2000/2004
+          esc2 === 0x40 || // JIS X 0208-1978
+          esc2 === 0x42
+        ) {
+          // JIS X 0208-1983
           return true;
         }
-      } else if (esc1 === 0x26 && // JIS X 0208-1990
-                 esc2 === 0x40) {
+      } else if (
+        esc1 === 0x26 && // JIS X 0208-1990
+        esc2 === 0x40
+      ) {
         return true;
       } else if (esc1 === 0x28) {
-        if (esc2 === 0x42 || // ASCII
-            esc2 === 0x49 || // JIS X 0201 Halfwidth Katakana
-            esc2 === 0x4A) { // JIS X 0201-1976 Roman set
+        if (
+          esc2 === 0x42 || // ASCII
+          esc2 === 0x49 || // JIS X 0201 Halfwidth Katakana
+          esc2 === 0x4a
+        ) {
+          // JIS X 0201-1976 Roman set
           return true;
         }
       }
@@ -107,40 +113,40 @@ function isEUCJP(data) {
       continue;
     }
 
-    if (b > 0xFF || b < 0x8E) {
+    if (b > 0xff || b < 0x8e) {
       return false;
     }
 
-    if (b === 0x8E) {
+    if (b === 0x8e) {
       if (i + 1 >= len) {
         return false;
       }
 
       b = data[++i];
-      if (b < 0xA1 || 0xDF < b) {
+      if (b < 0xa1 || 0xdf < b) {
         return false;
       }
-    } else if (b === 0x8F) {
+    } else if (b === 0x8f) {
       if (i + 2 >= len) {
         return false;
       }
 
       b = data[++i];
-      if (b < 0xA2 || 0xED < b) {
+      if (b < 0xa2 || 0xed < b) {
         return false;
       }
 
       b = data[++i];
-      if (b < 0xA1 || 0xFE < b) {
+      if (b < 0xa1 || 0xfe < b) {
         return false;
       }
-    } else if (0xA1 <= b && b <= 0xFE) {
+    } else if (0xa1 <= b && b <= 0xfe) {
       if (i + 1 >= len) {
         return false;
       }
 
       b = data[++i];
-      if (b < 0xA1 || 0xFE < b) {
+      if (b < 0xa1 || 0xfe < b) {
         return false;
       }
     } else {
@@ -161,24 +167,23 @@ function isSJIS(data) {
   var b;
 
   while (i < len && data[i] > 0x80) {
-    if (data[i++] > 0xFF) {
+    if (data[i++] > 0xff) {
       return false;
     }
   }
 
   for (; i < len; i++) {
     b = data[i];
-    if (b <= 0x80 ||
-        (0xA1 <= b && b <= 0xDF)) {
+    if (b <= 0x80 || (0xa1 <= b && b <= 0xdf)) {
       continue;
     }
 
-    if (b === 0xA0 || b > 0xEF || i + 1 >= len) {
+    if (b === 0xa0 || b > 0xef || i + 1 >= len) {
       return false;
     }
 
     b = data[++i];
-    if (b < 0x40 || b === 0x7F || b > 0xFC) {
+    if (b < 0x40 || b === 0x7f || b > 0xfc) {
       return false;
     }
   }
@@ -197,63 +202,88 @@ function isUTF8(data) {
 
   for (; i < len; i++) {
     b = data[i];
-    if (b > 0xFF) {
+    if (b > 0xff) {
       return false;
     }
 
-    if (b === 0x09 || b === 0x0A || b === 0x0D ||
-        (b >= 0x20 && b <= 0x7E)) {
+    if (b === 0x09 || b === 0x0a || b === 0x0d || (b >= 0x20 && b <= 0x7e)) {
       continue;
     }
 
-    if (b >= 0xC2 && b <= 0xDF) {
-      if (i + 1 >= len || data[i + 1] < 0x80 || data[i + 1] > 0xBF) {
+    if (b >= 0xc2 && b <= 0xdf) {
+      if (i + 1 >= len || data[i + 1] < 0x80 || data[i + 1] > 0xbf) {
         return false;
       }
       i++;
-    } else if (b === 0xE0) {
-      if (i + 2 >= len ||
-          data[i + 1] < 0xA0 || data[i + 1] > 0xBF ||
-          data[i + 2] < 0x80 || data[i + 2] > 0xBF) {
+    } else if (b === 0xe0) {
+      if (
+        i + 2 >= len ||
+        data[i + 1] < 0xa0 ||
+        data[i + 1] > 0xbf ||
+        data[i + 2] < 0x80 ||
+        data[i + 2] > 0xbf
+      ) {
         return false;
       }
       i += 2;
-    } else if ((b >= 0xE1 && b <= 0xEC) ||
-                b === 0xEE || b === 0xEF) {
-      if (i + 2 >= len ||
-          data[i + 1] < 0x80 || data[i + 1] > 0xBF ||
-          data[i + 2] < 0x80 || data[i + 2] > 0xBF) {
+    } else if ((b >= 0xe1 && b <= 0xec) || b === 0xee || b === 0xef) {
+      if (
+        i + 2 >= len ||
+        data[i + 1] < 0x80 ||
+        data[i + 1] > 0xbf ||
+        data[i + 2] < 0x80 ||
+        data[i + 2] > 0xbf
+      ) {
         return false;
       }
       i += 2;
-    } else if (b === 0xED) {
-      if (i + 2 >= len ||
-          data[i + 1] < 0x80 || data[i + 1] > 0x9F ||
-          data[i + 2] < 0x80 || data[i + 2] > 0xBF) {
+    } else if (b === 0xed) {
+      if (
+        i + 2 >= len ||
+        data[i + 1] < 0x80 ||
+        data[i + 1] > 0x9f ||
+        data[i + 2] < 0x80 ||
+        data[i + 2] > 0xbf
+      ) {
         return false;
       }
       i += 2;
-    } else if (b === 0xF0) {
-      if (i + 3 >= len ||
-          data[i + 1] < 0x90 || data[i + 1] > 0xBF ||
-          data[i + 2] < 0x80 || data[i + 2] > 0xBF ||
-          data[i + 3] < 0x80 || data[i + 3] > 0xBF) {
+    } else if (b === 0xf0) {
+      if (
+        i + 3 >= len ||
+        data[i + 1] < 0x90 ||
+        data[i + 1] > 0xbf ||
+        data[i + 2] < 0x80 ||
+        data[i + 2] > 0xbf ||
+        data[i + 3] < 0x80 ||
+        data[i + 3] > 0xbf
+      ) {
         return false;
       }
       i += 3;
-    } else if (b >= 0xF1 && b <= 0xF3) {
-      if (i + 3 >= len ||
-          data[i + 1] < 0x80 || data[i + 1] > 0xBF ||
-          data[i + 2] < 0x80 || data[i + 2] > 0xBF ||
-          data[i + 3] < 0x80 || data[i + 3] > 0xBF) {
+    } else if (b >= 0xf1 && b <= 0xf3) {
+      if (
+        i + 3 >= len ||
+        data[i + 1] < 0x80 ||
+        data[i + 1] > 0xbf ||
+        data[i + 2] < 0x80 ||
+        data[i + 2] > 0xbf ||
+        data[i + 3] < 0x80 ||
+        data[i + 3] > 0xbf
+      ) {
         return false;
       }
       i += 3;
-    } else if (b === 0xF4) {
-      if (i + 3 >= len ||
-          data[i + 1] < 0x80 || data[i + 1] > 0x8F ||
-          data[i + 2] < 0x80 || data[i + 2] > 0xBF ||
-          data[i + 3] < 0x80 || data[i + 3] > 0xBF) {
+    } else if (b === 0xf4) {
+      if (
+        i + 3 >= len ||
+        data[i + 1] < 0x80 ||
+        data[i + 1] > 0x8f ||
+        data[i + 2] < 0x80 ||
+        data[i + 2] > 0xbf ||
+        data[i + 3] < 0x80 ||
+        data[i + 3] > 0xbf
+      ) {
         return false;
       }
       i += 3;
@@ -280,18 +310,22 @@ function isUTF16(data) {
   var b1, b2, next, prev;
 
   if (len < 2) {
-    if (data[0] > 0xFF) {
+    if (data[0] > 0xff) {
       return false;
     }
   } else {
     b1 = data[0];
     b2 = data[1];
-    if (b1 === 0xFF && // BOM (little-endian)
-        b2 === 0xFE) {
+    if (
+      b1 === 0xff && // BOM (little-endian)
+      b2 === 0xfe
+    ) {
       return true;
     }
-    if (b1 === 0xFE && // BOM (big-endian)
-        b2 === 0xFF) {
+    if (
+      b1 === 0xfe && // BOM (big-endian)
+      b2 === 0xff
+    ) {
       return true;
     }
 
@@ -299,7 +333,7 @@ function isUTF16(data) {
       if (data[i] === 0x00) {
         pos = i;
         break;
-      } else if (data[i] > 0xFF) {
+      } else if (data[i] > 0xff) {
         return false;
       }
     }
@@ -339,14 +373,16 @@ function isUTF16BE(data) {
   var b1, b2;
 
   if (len < 2) {
-    if (data[0] > 0xFF) {
+    if (data[0] > 0xff) {
       return false;
     }
   } else {
     b1 = data[0];
     b2 = data[1];
-    if (b1 === 0xFE && // BOM
-        b2 === 0xFF) {
+    if (
+      b1 === 0xfe && // BOM
+      b2 === 0xff
+    ) {
       return true;
     }
 
@@ -354,7 +390,7 @@ function isUTF16BE(data) {
       if (data[i] === 0x00) {
         pos = i;
         break;
-      } else if (data[i] > 0xFF) {
+      } else if (data[i] > 0xff) {
         return false;
       }
     }
@@ -382,14 +418,16 @@ function isUTF16LE(data) {
   var b1, b2;
 
   if (len < 2) {
-    if (data[0] > 0xFF) {
+    if (data[0] > 0xff) {
       return false;
     }
   } else {
     b1 = data[0];
     b2 = data[1];
-    if (b1 === 0xFF && // BOM
-        b2 === 0xFE) {
+    if (
+      b1 === 0xff && // BOM
+      b2 === 0xfe
+    ) {
       return true;
     }
 
@@ -397,7 +435,7 @@ function isUTF16LE(data) {
       if (data[i] === 0x00) {
         pos = i;
         break;
-      } else if (data[i] > 0xFF) {
+      } else if (data[i] > 0xff) {
         return false;
       }
     }
@@ -432,7 +470,7 @@ function isUTF32(data) {
 
   if (len < 4) {
     for (; i < len; i++) {
-      if (data[i] > 0xFF) {
+      if (data[i] > 0xff) {
         return false;
       }
     }
@@ -441,13 +479,21 @@ function isUTF32(data) {
     b2 = data[1];
     b3 = data[2];
     b4 = data[3];
-    if (b1 === 0x00 && b2 === 0x00 && // BOM (big-endian)
-        b3 === 0xFE && b4 === 0xFF) {
+    if (
+      b1 === 0x00 &&
+      b2 === 0x00 && // BOM (big-endian)
+      b3 === 0xfe &&
+      b4 === 0xff
+    ) {
       return true;
     }
 
-    if (b1 === 0xFF && b2 === 0xFE && // BOM (little-endian)
-        b3 === 0x00 && b4 === 0x00) {
+    if (
+      b1 === 0xff &&
+      b2 === 0xfe && // BOM (little-endian)
+      b3 === 0x00 &&
+      b4 === 0x00
+    ) {
       return true;
     }
 
@@ -455,7 +501,7 @@ function isUTF32(data) {
       if (data[i] === 0x00 && data[i + 1] === 0x00 && data[i + 2] === 0x00) {
         pos = i;
         break;
-      } else if (data[i] > 0xFF) {
+      } else if (data[i] > 0xff) {
         return false;
       }
     }
@@ -466,13 +512,13 @@ function isUTF32(data) {
 
     // The byte order should be the big-endian when BOM is not detected.
     next = data[pos + 3];
-    if (next !== void 0 && next > 0x00 && next <= 0x7F) {
+    if (next !== void 0 && next > 0x00 && next <= 0x7f) {
       // big-endian
       return data[pos + 2] === 0x00 && data[pos + 1] === 0x00;
     }
 
     prev = data[pos - 1];
-    if (prev !== void 0 && prev > 0x00 && prev <= 0x7F) {
+    if (prev !== void 0 && prev > 0x00 && prev <= 0x7f) {
       // little-endian
       return data[pos + 1] === 0x00 && data[pos + 2] === 0x00;
     }
@@ -492,7 +538,7 @@ function isUNICODE(data) {
 
   for (; i < len; i++) {
     c = data[i];
-    if (c < 0 || c > 0x10FFFF) {
+    if (c < 0 || c > 0x10ffff) {
       return false;
     }
   }
