@@ -5,21 +5,31 @@ class Encoder {
    * Decoding a percent encoded string to character code array
    *
    * @param {string} str The string being decoded
-   * @returns {Array.<Number>} The decoded array
+   * @returns {Array.<Number|Object} The decoded array
    */
   urlDecode(str) {
-    let results = [];
+    let results = {};
+    // let results = [];
     let i = 0;
     let len = str && str.length;
-    let c; // ％以外の部分を文字コードにしてArrayに格納
+    let code; // ％以外の部分を文字コードにしてArrayに格納
+    let char;
 
     while (i < len) {
-      c = str.charCodeAt(i++);
-      if (c === 0x25 /** is % */) {
-        // 次とその次の文字が１６進数表記で表示されたものとしてintに変換する
-        c = parseInt(str.charAt(i++) + str.charAt(i++), 16);
+      char = str.charAt(i);
+      // Unicode のコードポイント(16進数)に変換し，それを10進数表記にする
+      code = str.charCodeAt(i);
+      i++;
+      if (code === 0x25 /** is % */) {
+        /**
+         * 次とその次の文字が16進数表記で表示されたものとしてintに変換する
+         * 1バイトを1つの数で表す．
+         */
+        char = str.charAt(i++) + str.charAt(i++);
+        code = parseInt(char, 16);
       }
-      results.push(c);
+      // results.push(c);
+      results[char] = code;
     }
     return results;
   }
@@ -54,6 +64,8 @@ class Encoder {
     var i = 0;
     var len = data && data.length;
     var b;
+
+    /** data[i] > 0x80はdata[i]が2バイト文字の先頭であることを意味する */
     while (i < len && data[i] > 0x80) {
       if (data[i++] > 0xff) {
         return false;
@@ -80,11 +92,12 @@ class Encoder {
   }
 }
 
-let str = "軍手だよ";
-let encoded_str = encodeURIComponent(str);
+let str = "軍手";
+// let encoded_str = encodeURIComponent(str);
+let encoded_str = "%8CR%8E%E8"; // 軍手（CP932）
 let encoder = new Encoder();
 
-console.log(Encoding.urlDecode(encoded_str));
+console.log(encoded_str);
 console.log(encoder.urlDecode(encoded_str));
 console.log(encoder.detect(encoded_str));
 console.log(encoder.detect(encoded_str, ["hoge"]));
