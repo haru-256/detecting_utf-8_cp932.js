@@ -434,13 +434,14 @@ function detect(data, methods = null) {
   if (data === null || data.length === 0) {
     return false;
   }
-  let cp932_flg = isSJIS(data);
+  let sjis_flg = isSJIS(data);
   let utf8_flg = isUTF8(data);
-  if (cp932_flg && !utf8_flg) {
-    return "CP932";
-  } else if (!cp932_flg && utf8_flg) {
+  if (sjis_flg && !utf8_flg) {
+    return "SJIS";
+  } else if (!sjis_flg && utf8_flg) {
     return "UTF8";
-  } else if (cp932_flg && utf8_flg) {
+  } else if (sjis_flg && utf8_flg) {
+    return "both";
     /** cp932にもutf8でもTrueであれば，場合分けして判断 */
   }
   return false;
