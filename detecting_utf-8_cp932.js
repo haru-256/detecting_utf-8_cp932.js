@@ -287,6 +287,152 @@ function rangeArray(start, end) {
 // }
 
 /**
+ * detecting if the data is isCP932.
+ * @param {Array.<Number>} data The data being detected
+ * @returns {Boolean} The encode method for the given data is isCP932
+ */
+function isCP932(data) {
+  let len = data && data.length;
+  let b;
+  let b1_range;
+  let b2_range;
+  let b2_base_range = arrayRemove(rangeArray(0x40, 0xfc), 0x7f);
+
+  /** 記号 */
+  let b1_symbol_range = [0x81];
+  let b2_symbol_range = arrayRemove(
+    b2_base_range,
+    rangeArray(0xad, 0xb7)
+      .concat(rangeArray(0xc0, 0xc7))
+      .concat(rangeArray(0xcf, 0xd9))
+      .concat(rangeArray(0xe9, 0xef))
+      .concat(rangeArray(0xf8, 0xff))
+  );
+  /** 英字，数字，ひらがな */
+  let b1_dig_alpha_hira_range = [0x82];
+  let b2_dig_alpha_hira_range = arrayRemove(
+    b2_base_range,
+    rangeArray(0x40, 0x4e)
+      .concat(rangeArray(0x59, 0x5f))
+      .concat(rangeArray(0x7b, 0x80))
+      .concat(rangeArray(0x9b, 0x9e))
+      .concat(rangeArray(0xf2, 0xff))
+  );
+  /** カタカナ，ギリシャ文字 */
+  let b1_katakana_greek_range = [0x83];
+  let b2_katakaba_greek_range = arrayRemove(
+    b2_base_range,
+    rangeArray(0x97, 0x9e)
+      .concat(rangeArray(0xb7, 0xbe))
+      .concat(rangeArray(0xd0, 0xff))
+  );
+  /** キリル文字，罫線 */
+  let b1_cyrillic_keisen_range = [0x84];
+  let b2_cyrillic_keisen_range = arrayRemove(
+    b2_base_range,
+    rangeArray(0x61, 0x6f)
+      .concat(rangeArray(0x92, 0x9e))
+      .concat(rangeArray(0xbf, 0xff))
+  );
+  /** NEC拡張文字 */
+  let b1_nec_range = [0x87];
+  let b2_nec_range = arrayRemove(
+    b2_base_range,
+    [0x5e]
+      .concat(rangeArray(0x76, 0x7d))
+      .concat(rangeArray(0x90, 0x92))
+      .concat(rangeArray(0x95, 0x97))
+      .concat(rangeArray(0x9a, 0xff))
+  );
+  /** JIS第1水準 */
+  let b1_jis1_range = rangeArray(0x88, 0x97);
+  let b2_jis1_range = b2_base_range;
+  /** JIS第1水準 OR JIS第2水準 */
+  let b1_jis1_jis2_range = [0x98];
+  let b2_jis1_jis2_range = arrayRemove(b2_base_range, rangeArray(0x73, 0x9e));
+  /** JIS第2水準 */
+  let b1_jis2_range = rangeArray(0x99, 0xea);
+  let b2_jis2_range = b2_base_range;
+  let b1_jis2_ea_range = [0xea];
+  let b2_jis2_ea_range = arrayRemove(b2_base_range, rangeArray(0xa5, 0xff));
+  /** IBM拡張文字 */
+  let b1_ibm_fa_range = [0xfa];
+  let b2_ibm_fa_range = arrayRemove(
+    b2_base_range,
+    rangeArray(0x4a, 0x54).concat(rangeArray(0x58, 0x5b))
+  );
+  let b1_ibm_fb_range = [0xfb];
+  let b2_ibm_fb_range = b2_base_range;
+  let b1_ibm_fc_range = [0xfc];
+  let b2_ibm_fc_range = arrayRemove(b2_base_range, rangeArray(0x4c, 0x4f));
+
+  /** 2B文字の1B目としてありえる範囲を作成 */
+  b1_range = b1_symbol_range;
+  for (range of [
+    b1_dig_alpha_hira_range,
+    b1_katakana_greek_range,
+    b1_cyrillic_keisen_range,
+    b1_nec_range,
+    b1_jis1_range,
+    b1_jis1_jis2_range,
+    b1_jis2_range,
+    b1_jis2_ea_range,
+    b1_ibm_fa_range,
+    b1_ibm_fb_range,
+    b1_ibm_fc_range,
+  ]) {
+    b1_range = b1_range.concat(range);
+  }
+
+  for (let i = 0; i < len; i++) {
+    b = data[i];
+    /** 1B文字かどうか */
+    if ((0x00 <= b && b <= 0x80) || (0xa1 <= b && b <= 0xdf)) {
+      continue;
+    }
+
+    /** 2B文字としてありえるかどうか */
+    b1 = b;
+    if (!b1_range.includes(b1)) {
+      return false;
+    }
+
+    /** 2B文字であればそれに応じてチェック */
+    if (b1_symbol_range.includes(b1)) {
+      b2_range = b2_symbol_range;
+    } else if (b1_dig_alpha_hira_range.includes(b1)) {
+      b2_range = b1_dig_alpha_hira_range;
+    } else if (b1_katakana_greek_range.includes(b1)) {
+      b2_range = b2_katakaba_greek_range;
+    } else if (b1_cyrillic_keisen_range.includes(b1)) {
+      b2_range = b2_cyrillic_keisen_range;
+    } else if (b1_nec_range.includes(b1)) {
+      b2_range = b2_nec_range;
+    } else if (b1_jis1_range.includes(b1)) {
+      b2_range = b2_jis1_range;
+    } else if (b1_jis1_jis2_range.includes(b1)) {
+      b2_range = b2_jis1_jis2_range;
+    } else if (b1_jis2_range.includes(b1)) {
+      b2_range = b2_jis2_range;
+    } else if (b1_jis2_ea_range.includes(b1)) {
+      b2_range = b2_jis2_ea_range;
+    } else if (b1_ibm_fa_range.includes(b1)) {
+      b2_range = b2_ibm_fa_range;
+    } else if (b1_ibm_fb_range.includes(b1)) {
+      b2_range = b2_ibm_fb_range;
+    } else if (b1_ibm_fc_range.includes(b1)) {
+      b2_range = b2_ibm_fc_range;
+    }
+    b2 = data[i++];
+    if (!b2_range.includes(b2)) {
+      return false;
+    }
+  }
+  return true;
+}
+/**
+
+/**
  * Shift-JIS (SJIS)
  */
 function isSJIS(data) {
@@ -319,7 +465,7 @@ function isSJIS(data) {
 
   return true;
 }
-exports.isSJIS = isSJIS;
+
 /**
  * UTF-8
  */
@@ -422,8 +568,19 @@ function isUTF8(data) {
 
   return true;
 }
-exports.isUTF8 = isUTF8;
 
+/**
+ * ASCII (ISO-646)
+ */
+function isASCII(data) {
+  var b;
+  for (b of data) {
+    if (b > 0xff || (0x80 <= b && b <= 0xff)) {
+      return false;
+    }
+  }
+  return true;
+}
 /**
  * Detecting the encode method for data
  * @param {Array.<Number>} data The data being detected
@@ -431,16 +588,22 @@ exports.isUTF8 = isUTF8;
  * @returns {String|Boolean} The detected encode method, or false
  */
 function detect(data, methods = null) {
+  let cp932_flg;
+  let utf8_flg;
   if (data === null || data.length === 0) {
     return false;
   }
-  let sjis_flg = isSJIS(data);
-  let utf8_flg = isUTF8(data);
-  if (sjis_flg && !utf8_flg) {
-    return "SJIS";
-  } else if (!sjis_flg && utf8_flg) {
+  if (isASCII(data)) {
+    return "ASCII";
+  }
+
+  cp932_flg = isCP932(data);
+  utf8_flg = isUTF8(data);
+  if (cp932_flg && !utf8_flg) {
+    return "CP932";
+  } else if (!cp932_flg && utf8_flg) {
     return "UTF8";
-  } else if (sjis_flg && utf8_flg) {
+  } else if (cp932_flg && utf8_flg) {
     return "both";
     /** cp932にもutf8でもTrueであれば，場合分けして判断 */
   }
