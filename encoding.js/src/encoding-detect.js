@@ -160,12 +160,17 @@ exports.isEUCJP = isEUCJP;
 
 /**
  * Shift-JIS (SJIS)
+ *
+ * Point
+ * - d > 0x80 は２バイト文字の先頭を表す
+ * - 2バイト以降の文字が
  */
 function isSJIS(data) {
   var i = 0;
   var len = data && data.length;
   var b;
 
+  /** ２バイト目の文字が */
   while (i < len && data[i] > 0x80) {
     if (data[i++] > 0xff) {
       return false;
