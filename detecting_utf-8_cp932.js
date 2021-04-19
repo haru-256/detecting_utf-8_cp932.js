@@ -1,3 +1,4 @@
+const Encoding = require("./encoding.js/encoding");
 /**
  * Removing the specific value
  * @param {Array.<any>} arr
@@ -435,7 +436,7 @@ function isCP932(data) {
 /**
  * Shift-JIS (SJIS)
  */
-function isSJIS(data) {
+function isStrictSJIS(data) {
   var i = 0;
   var len = data && data.length;
   var b;
@@ -469,10 +470,12 @@ function isSJIS(data) {
 /**
  * UTF-8
  */
-function isUTF8(data) {
-  var i = 0;
-  var len = data && data.length;
-  var b;
+function isStrictUTF8(data) {
+  let i = 0;
+  let len = data && data.length;
+  let b;
+  /** マルチバイト文字の2B目以降の範囲  */
+  let multi_b_range = rangeArray(0x80, 0xbf);
 
   for (; i < len; i++) {
     b = data[i];
@@ -480,83 +483,77 @@ function isUTF8(data) {
       return false;
     }
 
-    if (b === 0x09 || b === 0x0a || b === 0x0d || (b >= 0x20 && b <= 0x7e)) {
+    /** 1B文字かどうか */
+    if (0x00 <= b && b <= 0x7f) {
       continue;
     }
 
-    if (b >= 0xc2 && b <= 0xdf) {
-      if (i + 1 >= len || data[i + 1] < 0x80 || data[i + 1] > 0xbf) {
+    /** マルチバイト文字は1B目に応じて判定 */
+    if (0xc2 <= b && b <= 0xdf) {
+      /** 2B文字の処理 */
+      if (i + 1 >= len || !multi_b_range.includes(data[i + 1])) {
         return false;
       }
       i++;
     } else if (b === 0xe0) {
+      /** 3B文字で1B目がE0の処理 */
       if (
         i + 2 >= len ||
-        data[i + 1] < 0xa0 ||
-        data[i + 1] > 0xbf ||
-        data[i + 2] < 0x80 ||
-        data[i + 2] > 0xbf
+        !(0xa0 <= data[i + 1] && data[i + 1] <= 0xbf) ||
+        !multi_b_range.includes(data[i + 1])
       ) {
         return false;
       }
       i += 2;
-    } else if ((b >= 0xe1 && b <= 0xec) || b === 0xee || b === 0xef) {
+    } else if ((0xe1 <= b && b <= 0xec) || b === 0xef) {
+      /** 3B文字で1B目がE1 - ECの処理 */
       if (
         i + 2 >= len ||
-        data[i + 1] < 0x80 ||
-        data[i + 1] > 0xbf ||
-        data[i + 2] < 0x80 ||
-        data[i + 2] > 0xbf
+        !multi_b_range.includes(data[i + 1]) ||
+        !multi_b_range.includes(data[i + 2])
       ) {
         return false;
       }
       i += 2;
     } else if (b === 0xed) {
+      /** 3B文字で1B目がEDの処理 */
       if (
         i + 2 >= len ||
-        data[i + 1] < 0x80 ||
-        data[i + 1] > 0x9f ||
-        data[i + 2] < 0x80 ||
-        data[i + 2] > 0xbf
+        !(0x80 <= data[i + 1] && data[i + 1] < 0x9f) ||
+        !multi_b_range.includes(data[i + 2])
       ) {
         return false;
       }
       i += 2;
     } else if (b === 0xf0) {
+      /** 4B文字で1B目がF0の処理 */
       if (
         i + 3 >= len ||
-        data[i + 1] < 0x90 ||
-        data[i + 1] > 0xbf ||
-        data[i + 2] < 0x80 ||
-        data[i + 2] > 0xbf ||
-        data[i + 3] < 0x80 ||
-        data[i + 3] > 0xbf
+        !(0x90 <= data[i + 1] && data[i + 1] <= 0x9f) ||
+        !multi_b_range.includes(data[i + 2]) ||
+        !multi_b_range.includes(data[i + 3])
       ) {
         return false;
       }
       i += 3;
-    } else if (b >= 0xf1 && b <= 0xf3) {
+    } else if (0xf1 <= b && b <= 0xf3) {
+      /** 4B文字で1B目がF1 - F3の処理 */
       if (
         i + 3 >= len ||
-        data[i + 1] < 0x80 ||
-        data[i + 1] > 0xbf ||
-        data[i + 2] < 0x80 ||
-        data[i + 2] > 0xbf ||
-        data[i + 3] < 0x80 ||
-        data[i + 3] > 0xbf
+        !multi_b_range.includes(data[i + 1]) ||
+        !multi_b_range.includes(data[i + 2]) ||
+        !multi_b_range.includes(data[i + 3])
       ) {
         return false;
       }
       i += 3;
     } else if (b === 0xf4) {
+      /** 4B文字で1B目がF4の処理 */
       if (
         i + 3 >= len ||
-        data[i + 1] < 0x80 ||
-        data[i + 1] > 0x8f ||
-        data[i + 2] < 0x80 ||
-        data[i + 2] > 0xbf ||
-        data[i + 3] < 0x80 ||
-        data[i + 3] > 0xbf
+        !(0x80 <= data[i + 1] && data[i + 1] <= 0x8f) ||
+        !multi_b_range.includes(data[i + 2]) ||
+        !multi_b_range.includes(data[i + 3])
       ) {
         return false;
       }
@@ -593,12 +590,12 @@ function detect(data, methods = null) {
   if (data === null || data.length === 0) {
     return false;
   }
-  if (isASCII(data)) {
+  if (Encoding.detect(data, "ASCII") === "ASCII") {
     return "ASCII";
   }
 
-  cp932_flg = isCP932(data);
-  utf8_flg = isUTF8(data);
+  cp932_flg = Encoding.detect(data, "SJIS") === "SJIS";
+  utf8_flg = Encoding.detect(data, "UTF8") === "UTF8";
   if (cp932_flg && !utf8_flg) {
     return "CP932";
   } else if (!cp932_flg && utf8_flg) {
