@@ -10,10 +10,10 @@ let encoded_str_list = [
 for (const encoded_str of encoded_str_list) {
   let data = Encoding.urlDecode(encoded_str);
   let method = Encoding2.detect(data);
-  if (method == "both") {
-    method = "UTF8";
-    // method = "SJIS";
-  }
+  // if (method == "both") {
+  // method = "UTF8";
+  // method = "SJIS";
+  //}
   let unicodeArray = Encoding.convert(data, { to: "UNICODE", from: method });
   let unicodeString = Encoding.codeToString(unicodeArray);
   console.log(
