@@ -557,7 +557,7 @@ function isMonoCP932(data) {
   let char_len = 0;
   let b;
   let b1_range;
-  let counter = { hankaku: 0, cyrillic_keisen: 0, nec: 0, jis2: 0, ibm: 0 };
+  let counter = { char_1b: 0, cyrillic_keisen: 0, nec: 0, jis2: 0, ibm: 0 };
 
   /** 記号 */
   let b1_symbol_range = [0x81];
@@ -597,9 +597,10 @@ function isMonoCP932(data) {
     b = data[i];
     /** 1B文字かどうか */
     if ((0x00 <= b && b <= 0x80) || (0xa1 <= b && b <= 0xdf)) {
-      if (0xa1 <= b && b <= 0xdf) {
-        counter["hankaku"] += 1;
-      }
+      // if (0xa1 <= b && b <= 0xdf) {
+      //   counter["hankaku"] += 1;
+      // }
+      counter["char_1b"] += 1;
       char_len += 1;
       continue;
     }
@@ -626,11 +627,12 @@ function isMonoCP932(data) {
     i += 1;
     char_len += 1;
   }
+  console.log(counter, char_len);
   if (counter["jis2"] > parseInt(char_len / 2)) {
     /** 文字列の過半数がJIS第２水準のみ */
     return false;
-  } else if (counter["jis2"] + counter["hankaku"] >= char_len) {
-    /** 半角カタカナと JIS 第２水準のみである */
+  } else if (counter["jis2"] + counter["char_1b"] >= char_len) {
+    /** 1b文字と JIS 第２水準のみである */
     return false;
   }
   return true;
@@ -738,17 +740,16 @@ function detect(data, methods = null) {
     return "ASCII";
   }
 
-  cp932_flg = Encoding.detect(data, "SJIS") === "SJIS";
+  // cp932_flg = Encoding.detect(data, "SJIS") === "SJIS";
+  cp932_flg = isStrictCP932(data);
   utf8_flg = Encoding.detect(data, "UTF8") === "UTF8";
   // utf8_flg = isStrictUTF8(data, "UTF8");
   encode_method = judging(cp932_flg, utf8_flg);
-  console.log(encode_method);
   if (encode_method === "both") {
     /** cp932にもutf8でもTrueであれば，日本語環境としてありえるか判断 */
     cp932_flg = isMonoCP932(data);
     utf8_flg = isMonoUTF8(data);
     encode_method = judging(cp932_flg, utf8_flg);
-    console.log(encode_method);
   }
   return encode_method;
 }
