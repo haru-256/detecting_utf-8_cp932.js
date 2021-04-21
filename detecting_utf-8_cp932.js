@@ -22,7 +22,7 @@ function arrayRemove(arr, value) {
 }
 
 function rangeArray(start, end) {
-  return [...Array(end - start)].map((_, i) => i + start);
+  return [...Array(end + 1 - start)].map((_, i) => i + start);
 }
 // class Encoder {
 //   /**
@@ -387,11 +387,13 @@ function isStrictCP932(data) {
 
   for (let i = 0; i < len; i++) {
     b = data[i];
+    console.log(i, b.toString(16));
     /** 1B文字かどうか */
     if ((0x00 <= b && b <= 0x80) || (0xa1 <= b && b <= 0xdf)) {
       continue;
     }
 
+    console.log(Math.max(...b1_jis1_range).toString(16));
     /** 2B文字としてありえるかどうか */
     b1 = b;
     if (!b1_range.includes(b1)) {
@@ -402,7 +404,7 @@ function isStrictCP932(data) {
     if (b1_symbol_range.includes(b1)) {
       b2_range = b2_symbol_range;
     } else if (b1_dig_alpha_hira_range.includes(b1)) {
-      b2_range = b1_dig_alpha_hira_range;
+      b2_range = b2_dig_alpha_hira_range;
     } else if (b1_katakana_greek_range.includes(b1)) {
       b2_range = b2_katakaba_greek_range;
     } else if (b1_cyrillic_keisen_range.includes(b1)) {
@@ -410,6 +412,7 @@ function isStrictCP932(data) {
     } else if (b1_nec_range.includes(b1)) {
       b2_range = b2_nec_range;
     } else if (b1_jis1_range.includes(b1)) {
+      // console.log("b2", data[i + 1].toString(16));
       b2_range = b2_jis1_range;
     } else if (b1_jis1_jis2_range.includes(b1)) {
       b2_range = b2_jis1_jis2_range;
@@ -425,6 +428,10 @@ function isStrictCP932(data) {
       b2_range = b2_ibm_fc_range;
     }
     b2 = data[i + 1];
+    console.log(
+      "b2_range",
+      b2_range.map((v, _) => v.toString(16))
+    );
     if (!b2_range.includes(b2)) {
       return false;
     }
@@ -741,6 +748,7 @@ function detect(data, methods = null) {
   }
 
   // cp932_flg = Encoding.detect(data, "SJIS") === "SJIS";
+  console.log(rangeArray(1, 3));
   cp932_flg = isStrictCP932(data);
   utf8_flg = Encoding.detect(data, "UTF8") === "UTF8";
   // utf8_flg = isStrictUTF8(data, "UTF8");
