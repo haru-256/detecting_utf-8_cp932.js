@@ -325,7 +325,7 @@ function isStrictCP932(data) {
     b2_base_range,
     rangeArray(0x97, 0x9e)
       .concat(rangeArray(0xb7, 0xbe))
-      .concat(rangeArray(0xd0, 0xff))
+      .concat(rangeArray(0xd7, 0xff))
   );
   /** キリル文字，罫線 */
   let b1_cyrillic_keisen_range = [0x84];
@@ -352,7 +352,7 @@ function isStrictCP932(data) {
   let b1_jis1_jis2_range = [0x98];
   let b2_jis1_jis2_range = arrayRemove(b2_base_range, rangeArray(0x73, 0x9e));
   /** JIS第2水準 */
-  let b1_jis2_range = rangeArray(0x99, 0xe9);
+  let b1_jis2_range = rangeArray(0x99, 0x9f).concat(rangeArray(0xe0, 0xe9));
   let b2_jis2_range = b2_base_range;
   let b1_jis2_ea_range = [0xea];
   let b2_jis2_ea_range = arrayRemove(b2_base_range, rangeArray(0xa5, 0xff));
@@ -387,13 +387,12 @@ function isStrictCP932(data) {
 
   for (let i = 0; i < len; i++) {
     b = data[i];
-    console.log(i, b.toString(16));
+    // console.log(i, b.toString(16));
     /** 1B文字かどうか */
     if ((0x00 <= b && b <= 0x80) || (0xa1 <= b && b <= 0xdf)) {
       continue;
     }
 
-    console.log(Math.max(...b1_jis1_range).toString(16));
     /** 2B文字としてありえるかどうか */
     b1 = b;
     if (!b1_range.includes(b1)) {
@@ -428,10 +427,10 @@ function isStrictCP932(data) {
       b2_range = b2_ibm_fc_range;
     }
     b2 = data[i + 1];
-    console.log(
-      "b2_range",
-      b2_range.map((v, _) => v.toString(16))
-    );
+    // console.log(
+    //   "b2_range",
+    //   b2_range.map((v, _) => v.toString(16))
+    // );
     if (!b2_range.includes(b2)) {
       return false;
     }
@@ -564,7 +563,15 @@ function isMonoCP932(data) {
   let char_len = 0;
   let b;
   let b1_range;
-  let counter = { char_1b: 0, cyrillic_keisen: 0, nec: 0, jis2: 0, ibm: 0 };
+  // let counter = { char_1b: 0, cyrillic_keisen: 0, nec: 0, jis2: 0, ibm: 0 };
+  let pre_is_jis2 = false;
+  let counter = {
+    char_1b: { cnt: 0, str: [] },
+    cyrillic_keisen: { cnt: 0, str: [] },
+    nec: { cnt: 0, str: [] },
+    jis2: { cnt: 0, str: [] },
+    ibm: { cnt: 0, str: [] },
+  };
 
   /** 記号 */
   let b1_symbol_range = [0x81];
@@ -581,7 +588,7 @@ function isMonoCP932(data) {
   /** JIS第1水準 OR JIS第2水準 */
   let b1_jis1_jis2_range = [0x98];
   /** JIS第2水準 */
-  let b1_jis2_range = rangeArray(0x99, 0xea);
+  let b1_jis2_range = rangeArray(0x99, 0x9f).concat(rangeArray(0xe0, 0xea));
   /** IBM拡張文字 */
   let b1_ibm_range = [0xfa, 0xfb, 0xfc];
 
@@ -604,10 +611,12 @@ function isMonoCP932(data) {
     b = data[i];
     /** 1B文字かどうか */
     if ((0x00 <= b && b <= 0x80) || (0xa1 <= b && b <= 0xdf)) {
-      // if (0xa1 <= b && b <= 0xdf) {
-      //   counter["hankaku"] += 1;
-      // }
-      counter["char_1b"] += 1;
+      /** JIS第２水準漢字のあとに１B文字であればCP932でないとする */
+      if (pre_is_jis2) {
+        return false;
+      }
+      counter["char_1b"]["cnt"] += 1;
+      counter["char_1b"]["str"].push(b.toString(16));
       char_len += 1;
       continue;
     }
@@ -617,24 +626,35 @@ function isMonoCP932(data) {
       return false;
     }
 
+    function counting(counter, field, b1, b2) {
+      counter[field]["cnt"] += 1;
+      counter[field]["str"].push(...[b1.toString(16), b2.toString(16)]);
+      return counter;
+    }
+
     /** 2B文字でJIS第２水準か半角カタカナ, キリル文字であればカウント */
+    let field = "";
     b2 = data[i + 1];
     if (b1_cyrillic_keisen_range.includes(b)) {
-      counter["cyrillic_keisen"] += 1;
+      field = "cyrillic_keisen";
     } else if (b1_nec_range.includes(b)) {
-      counter["nec"] += 1;
+      field = "nec";
     } else if (
       (b1_jis1_jis2_range.includes(b) && 0x91 <= b2 && b2 <= 0xfc) ||
       b1_jis2_range.includes(b)
     ) {
-      counter["jis2"] += 1;
+      field = "jis2";
+      pre_is_jis2 = true;
     } else if (b1_ibm_range.includes(b)) {
-      counter["ibm"] += 1;
+      field = "ibm";
+    }
+    if (field) {
+      counting(counter, field, b, b2);
     }
     i += 1;
     char_len += 1;
   }
-  console.log(counter, char_len);
+  // console.log(counter, char_len);
   if (counter["jis2"] > parseInt(char_len / 2)) {
     /** 文字列の過半数がJIS第２水準のみ */
     return false;
@@ -747,12 +767,10 @@ function detect(data, methods = null) {
     return "ASCII";
   }
 
-  // cp932_flg = Encoding.detect(data, "SJIS") === "SJIS";
-  console.log(rangeArray(1, 3));
   cp932_flg = isStrictCP932(data);
   utf8_flg = Encoding.detect(data, "UTF8") === "UTF8";
-  // utf8_flg = isStrictUTF8(data, "UTF8");
   encode_method = judging(cp932_flg, utf8_flg);
+  // console.log(encode_method);
   if (encode_method === "both") {
     /** cp932にもutf8でもTrueであれば，日本語環境としてありえるか判断 */
     cp932_flg = isMonoCP932(data);
