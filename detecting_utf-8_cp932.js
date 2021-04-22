@@ -635,15 +635,31 @@ function isMonoCP932(data) {
     /** 2B文字でJIS第２水準か半角カタカナ, キリル文字であればカウント */
     let field = "";
     b2 = data[i + 1];
-    if (b1_cyrillic_keisen_range.includes(b)) {
+    if (b1_symbol_range.includes(b)) {
+      if (pre_is_jis2) {
+        return false;
+      }
+    } else if (b1_cyrillic_keisen_range.includes(b)) {
       field = "cyrillic_keisen";
     } else if (b1_nec_range.includes(b)) {
       field = "nec";
+    } else if (
+      b1_jis1_range.includes(b) ||
+      (b1_jis1_jis2_range.includes(b) && 0x40 <= b2 && b2 <= 0x72)
+    ) {
+      /** JIS第２水準漢字のあとにJIS 第1水準であればCP932でないとする */
+      if (pre_is_jis2) {
+        return false;
+      }
     } else if (
       (b1_jis1_jis2_range.includes(b) && 0x91 <= b2 && b2 <= 0xfc) ||
       b1_jis2_range.includes(b)
     ) {
       field = "jis2";
+      /** JIS第２水準漢字のあとにJIS 第２水準であればCP932でないとする */
+      if (pre_is_jis2) {
+        return false;
+      }
       pre_is_jis2 = true;
     } else if (b1_ibm_range.includes(b)) {
       field = "ibm";
@@ -700,8 +716,8 @@ function isMonoUTF8(data) {
     /** 2B文字の処理 */
     if (0xc2 <= b && b <= 0xdf) {
       if (b === 0xc2) {
-        /** 0x80: , 0xa5: ¥, 0xb1: ± 以外か */
-        if (![0x80, 0xa5, 0xb1].includes(data[i + 1])) {
+        /** 0x80: , 0xa5: ¥, 0xb0: °, 0xb1: ± 以外か */
+        if (![0x80, 0xa5, 0xb0, 0xb1].includes(data[i + 1])) {
           return false;
         }
       } else if (b === 0xce) {
